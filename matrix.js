@@ -25,22 +25,22 @@
     }
 
     // Iterate through all assignments
-    // Object.values(data.assignments).map((assignment) => {
-    //     categories.assignments.push(assignment.fields.title);
-    //     // note each topic
-    //     // for (var topic of assignment.fields.topics) {
-    //     //   console.log(topic, data.topics[topic]);
-    //     //   // addUnique(categories.topics, data.topics[topic]);
-    //     // }
-    //     // // note each language
-    //     // for (var language of assignment.fields.languages) {
-    //     //   addUnique(categories.languages, language);
-    //     // }
-    //     // // note each classification
-    //     // for (var classification of assignment.fields.classifications) {
-    //     //   addUnique(categories.classifications, classification);
-    //     // }
-    // });
+    Object.values(data.assignments).map((assignment) => {
+        categories.assignments.push(assignment.fields.title);
+        // note each topic
+        // for (var topic of assignment.fields.topics) {
+        //   console.log(topic, data.topics[topic]);
+        //   // addUnique(categories.topics, data.topics[topic]);
+        // }
+        // // note each language
+        // for (var language of assignment.fields.languages) {
+        //   addUnique(categories.languages, language);
+        // }
+        // // note each classification
+        // for (var classification of assignment.fields.classifications) {
+        //   addUnique(categories.classifications, classification);
+        // }
+    });
 
     return {'categories': categories, 'assignments': data.assignments};
   }
@@ -64,14 +64,26 @@
      */
     // sort assignments alphabetically by name
     data.assignments = data.assignments.sort(function(a, b) { return d3.ascending(a.fields.title, b.fields.title); });
+
+    // reseed assignment titles based on new order
+    data.categories.assignments = [];
+    for(let i = 0; i < data.assignments.length; i++) {
+      data.categories.assignments.push(data.assignments[i].fields.title);
+    }
+
     // sort topics (alphabetically by name?)
     // data.categories.topics = data.categories.topics.sort(function(a, b) { return d3.ascending(a, b); });
 
     // set domains of x and y1 scales
-    rows.domain(d3.range(data.assignments.length));
+    // rows.domain(d3.range(data.assignments.length));
+    rows.domain(data.categories.assignments);
+    console.log(rows.domain());
 
     cols1.domain(d3.range(data.categories.topics.length));
     // cols2.domain(d3.range(data.categories.languages.length));
+
+
+
     // set up SVG element
     var svg = d3.select("body").append("svg")
         .attr("width", width + margin.left + margin.right)
@@ -86,7 +98,7 @@
       .enter().append("g")
         .attr("class", "row")
         .attr("transform", function(d, i) {
-          return "translate(0," + rows(i) + ")"; })
+          return "translate(0," + rows(d.fields.title) + ")"; })
         .each(row);
 
     row.append("line")
@@ -120,7 +132,8 @@
         .attr("text-anchor", "start")
         .text(function(d, i) { return d; })
         .on("mouseover", colMouseover)
-        .on("mouseout", textMouseout);
+        .on("mouseout", textMouseout)
+        .on("click", colClick);
 
     // create each cell
     function row(row) {
@@ -215,41 +228,32 @@
       d3.selectAll("text").style("opacity", 1);
       // d3.selectAll(".column").style("opacity", 1);
     }
+
+    /* Allow reordering of rows based on the column content */
+    function colClick(col) {
+      let topicIndex = data.categories.topics.indexOf(col);
+
+      // sort actual assignment data on presence of topic
+      data.assignments = data.assignments.sort(function(a, b) {
+        return d3.descending(a.fields.topics.indexOf(topicIndex), b.fields.topics.indexOf(topicIndex));
+      });
+
+      // reseed assignment titles based on new order
+      data.categories.assignments = [];
+      for(let i = 0; i < data.assignments.length; i++) {
+        data.categories.assignments.push(data.assignments[i].fields.title);
+      }
+
+      // reset domain of row scale
+      rows.domain(data.categories.assignments);
+
+      // transition rows to new ordering
+      var t = svg.transition().duration(1000);
+      t.selectAll(".row")
+          .attr("transform", function(d, i) {
+            return "translate(0," + rows(d.fields.title) + ")"; });
+    }
   }
-
-
-
-
-
-//
-//   d3.select("#order").on("change", function() {
-//     clearTimeout(timeout);
-//     order(this.value);
-//   });
-//
-//   function order(value) {
-//     x.domain(orders[value]);
-//
-//     var t = svg.transition().duration(2500);
-//
-//     t.selectAll(".row")
-//         .delay(function(d, i) { return x(i) * 4; })
-//         .attr("transform", function(d, i) { return "translate(0," + x(i) + ")"; })
-//       .selectAll(".cell")
-//         .delay(function(d) { return x(d.x) * 4; })
-//         .attr("x", function(d) { return x(d.x); });
-//
-//     t.selectAll(".column")
-//         .delay(function(d, i) { return x(i) * 4; })
-//         .attr("transform", function(d, i) { return "translate(" + x(i) + ")rotate(-90)"; });
-//   }
-//
-//   var timeout = setTimeout(function() {
-//     order("group");
-//     d3.select("#order").property("selectedIndex", 2).node().focus();
-//   }, 5000);
-// });
-
 
   /*
    * *
