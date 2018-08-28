@@ -9,11 +9,11 @@
   }
 
   /* Pull topics, languages, classes, and categories from each assignment */
-  function collectCategories(assignments) {
+  function collectCategories(data) {
     let categories = {
-      'topics': [],
-      'languages': [],
-      'classifications': [],
+      'topics': data.topics,
+      'languages': data.languages,
+      'classifications': data.classifications,
       'assignments': []
     };
 
@@ -25,33 +25,35 @@
     }
 
     // Iterate through all assignments
-    Object.values(assignments).map((assignment) => {
-        categories.assignments.push(assignment.fields.title);
-        // note each topic
-        for (var topic of assignment.fields.topics) {
-          addUnique(categories.topics, topic);
-        }
-        // note each language
-        for (var language of assignment.fields.languages) {
-          addUnique(categories.languages, language);
-        }
-        // note each classification
-        for (var classification of assignment.fields.classifications) {
-          addUnique(categories.classifications, classification);
-        }
-    });
+    // Object.values(data.assignments).map((assignment) => {
+    //     categories.assignments.push(assignment.fields.title);
+    //     // note each topic
+    //     // for (var topic of assignment.fields.topics) {
+    //     //   console.log(topic, data.topics[topic]);
+    //     //   // addUnique(categories.topics, data.topics[topic]);
+    //     // }
+    //     // // note each language
+    //     // for (var language of assignment.fields.languages) {
+    //     //   addUnique(categories.languages, language);
+    //     // }
+    //     // // note each classification
+    //     // for (var classification of assignment.fields.classifications) {
+    //     //   addUnique(categories.classifications, classification);
+    //     // }
+    // });
 
-    return {'categories': categories, 'assignments': assignments};
+    return {'categories': categories, 'assignments': data.assignments};
   }
 
   /* Create a matrix chart */
   function matrix(data) {
-    var margin = {top: 80, right: 0, bottom: 10, left: 150},
-        width = 750,
+    var margin = {top: 150, right: 0, bottom: 10, left: 150},
+        width = 800,
         height = 500;
 
     var rows = d3.scaleBand().rangeRound([0, height]),
         cols1 = d3.scaleBand().rangeRound([0, width]).padding(0.05),
+        // cols2 = d3.scaleBand().rangeRound([0, width]).padding(0.05),
         z = d3.scaleLinear().domain([0,1000]).clamp(true);
         // c = d3.scaleCategory10().domain(d3.range(10));
 
@@ -63,12 +65,13 @@
     // sort assignments alphabetically by name
     data.assignments = data.assignments.sort(function(a, b) { return d3.ascending(a.fields.title, b.fields.title); });
     // sort topics (alphabetically by name?)
-    data.categories.topics = data.categories.topics.sort(function(a, b) { return d3.ascending(a, b); });
+    // data.categories.topics = data.categories.topics.sort(function(a, b) { return d3.ascending(a, b); });
 
     // set domains of x and y1 scales
     rows.domain(d3.range(data.assignments.length));
-    cols1.domain(data.categories.topics);
-    // cols2.domain(data.categories.languages);
+
+    cols1.domain(d3.range(data.categories.topics.length));
+    // cols2.domain(d3.range(data.categories.languages.length));
     // set up SVG element
     var svg = d3.select("body").append("svg")
         .attr("width", width + margin.left + margin.right)
@@ -95,14 +98,16 @@
         .attr("y", rows.bandwidth() / 2)
         .attr("dy", ".32em")
         .attr("text-anchor", "end")
-        .text(function(d, i) { return d.fields.title; });
+        .text(function(d, i) { return d.fields.title; })
+        .on("mouseover", rowMouseover)
+        .on("mouseout", textMouseout);
 
     // map topics (etc) to columns
     var topics = svg.selectAll(".column")
           .data(data.categories.topics)
         .enter().append("g")
           .attr("class", "column")
-          .attr("transform", function(d, i) { return "translate(" + cols1(d) + ")rotate(-90)"; });
+          .attr("transform", function(d, i) { return "translate(" + cols1(i) + ")rotate(-90)"; });
 
     topics.append("line")
         .attr("x1", -width);
@@ -113,11 +118,12 @@
         .attr("y", cols1.bandwidth() / 2)
         .attr("dy", ".32em")
         .attr("text-anchor", "start")
-        .text(function(d, i) { return d; });
+        .text(function(d, i) { return d; })
+        .on("mouseover", colMouseover)
+        .on("mouseout", textMouseout);
 
     // create each cell
     function row(row) {
-        console.log(row);
         var cell = d3.select(this).selectAll(".cell")
             .data(row.fields.topics)
           .enter().append("rect")
@@ -129,23 +135,86 @@
             .attr("height", rows.bandwidth())
             .style("fill-opacity", function(d) { return 1; })
             .style("fill", function(d) { return 'lightblue';})
-            .on("mouseover", mouseover)
-            .on("mouseout", mouseout);
+            .on("mouseover", cellMouseover)
+            .on("mouseout", cellMouseout);
       }
 
-      function mouseover(sq) {
-        let rowName = d3.select(this).attr("rowName");
-        let colName = d3.select(this).attr("colName");
-        d3.select(this).style("fill", function(d) { return 'blue';});
-        d3.selectAll(".row text").classed("active", function(d, i) { return d.fields.title == rowName; });
-        d3.selectAll(".column text").classed("active", function(d, i) { return d == sq; });
-        console.log(rowName, colName,data.assignments);
-      }
+    function cellMouseover(sq) {
+      let rowName = d3.select(this).attr("rowName");
+      d3.select(this).style("fill", function(d) { return 'red';});
+      d3.selectAll(".row text").classed("active", function(d, i) { return d.fields.title == rowName; });
+      d3.selectAll(".column text").classed("active", function(d, i) { return i == sq; });
+    }
 
-      function mouseout() {
-        d3.select(this).style("fill", function(d) { return 'lightblue';});
-        d3.selectAll("text").classed("active", false);
-      }
+    function cellMouseout() {
+      d3.select(this).style("fill", 'lightblue');
+      d3.selectAll("text").classed("active", false);
+    }
+
+    function colMouseover(colName, index) {
+      // highlight that col label
+      d3.select(this).classed("active", true);
+
+      // highlight all cells that match the column
+      d3.selectAll(".cell")
+        .style("fill", function(d, i) {
+          return d == index ? 'red' : 'lightblue';
+        })
+        .style("opacity", function(d, i) {
+            return d == index ? 1 : 0.2;
+        });
+
+      // highlight all assignments that use this column
+      d3.selectAll(".row text").classed("active", function(d, i) {
+        for(let topic of d.fields.topics) {
+          if(topic == index) return true;
+        }
+        return false; });
+
+      // make extraneous rows opaque
+      d3.selectAll(".row text").style("opacity", function(d, i) {
+        for(let topic of d.fields.topics) {
+          if(topic == index) return 1;
+        }
+        return 0.2; });
+    }
+
+    function rowMouseover(row, index) {
+      // highlight that row label
+      d3.select(this).classed("active", true);
+
+      // highlight all cells that match the row
+      d3.selectAll(".cell")
+        .style("fill", function(d, i) {
+          let rowName = d3.select(this).attr("rowName");
+          return rowName == row.fields.title ? 'red' : 'lightblue';
+        })
+        .style("opacity", function(d, i) {
+          let rowName = d3.select(this).attr("rowName");
+          return rowName == row.fields.title ? 1 : 0.2;
+        });
+
+      // highlight all columns that associated with this row
+      d3.selectAll(".column text").classed("active", function(d, i) {
+        for(let topic of row.fields.topics) {
+          if(topic == i) return true;
+        }
+        return false; });
+
+      // make extraneous cols opaque
+      d3.selectAll(".column text").style("opacity", function(d, i) {
+        for(let topic of row.fields.topics) {
+          if(topic == i) return 1;
+        }
+        return 0.2; });
+    }
+
+    function textMouseout() {
+      d3.selectAll(".cell").style("fill", 'lightblue').style("opacity", 1);
+      d3.selectAll("text").classed("active", false);
+      d3.selectAll("text").style("opacity", 1);
+      // d3.selectAll(".column").style("opacity", 1);
+    }
   }
 
 
@@ -194,7 +263,7 @@
 
   /* first read JSON data from file */
   new Promise(function(resolve, reject) {
-    readFile("./sample.json", function(err, data) {
+    readFile("./scrape.json", function(err, data) {
       if(err) reject(err);
       else resolve(data);
     });
