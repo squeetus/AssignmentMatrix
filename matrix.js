@@ -25,6 +25,10 @@
       }
     }
 
+    topicCount = {};
+    languageCount = {};
+    cCount = {};
+
     // Iterate through all assignments and replace indices with strings for each column category
     Object.values(data.assignments).map((assignment) => {
         categories.assignments.push(assignment.fields.title);
@@ -33,21 +37,42 @@
         let topics = assignment.fields.topics;
         assignment.fields.topics = [];
         for (let i = 0; i < topics.length; i++) {
-          assignment.fields.topics.push(categories.topics[topics[i]]);
+          let topicName = categories.topics[topics[i]];
+          assignment.fields.topics.push(topicName);
+
+          if(topicCount[topicName] >= 0) {
+            topicCount[topicName]++;
+          } else {
+            topicCount[topicName] = 1;
+          }
         }
 
         // transform each language from indices to names
         let languages = assignment.fields.languages;
         assignment.fields.languages = [];
         for (let i = 0; i < languages.length; i++) {
-          assignment.fields.languages.push(categories.languages[languages[i]]);
+          let lName = categories.languages[languages[i]];
+          assignment.fields.languages.push(lName);
+
+          if(languageCount[lName] >= 0) {
+            languageCount[lName]++;
+          } else {
+            languageCount[lName] = 1;
+          }
         }
 
         // transform each classification from indices to names
         let classifications = assignment.fields.classifications;
         assignment.fields.classifications = [];
         for (let i = 0; i < classifications.length; i++) {
-          assignment.fields.classifications.push(categories.classifications[classifications[i]]);
+          let cName = categories.classifications[classifications[i]];
+          assignment.fields.classifications.push(cName);
+
+          if(cCount[cName] >= 0) {
+            cCount[cName]++;
+          } else {
+            cCount[cName] = 1;
+          }
         }
     });
 
@@ -68,12 +93,18 @@
       }
     }
 
+    // sort column categories by sum of assignments associated with each one
+    /*
+    ** NOTE ** this will remove any columns for which no assignments have associations
+    */
+    categories.topics = Object.keys(topicCount).sort(function(a,b){return topicCount[b]-topicCount[a]; });
+    categories.languages = Object.keys(languageCount).sort(function(a,b){return languageCount[b]-languageCount[a]; });
+    categories.classifications = Object.keys(cCount).sort(function(a,b){return cCount[b]-cCount[a]; });
+
+
     data = {'categories': categories, 'assignments': data.assignments};
 
-    /*
-     *  S O R T   D A T A
-     *
-     */
+
     // sort assignments alphabetically by name
     data.assignments = data.assignments.sort(function(a, b) { return d3.ascending(a.fields.title, b.fields.title); });
 
@@ -83,8 +114,8 @@
       data.categories.assignments.push(data.assignments[i].fields.title);
     }
 
-    // sort columns (alphabetically by name)
-    data.categories[matrixArgument] = data.categories[matrixArgument].sort(function(a, b) { return d3.ascending(a, b); });
+    // // sort columns (alphabetically by name)
+    // data.categories[matrixArgument] = data.categories[matrixArgument].sort(function(a, b) { return d3.ascending(a, b); });
 
     return data;
   }
