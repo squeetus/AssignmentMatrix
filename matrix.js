@@ -194,13 +194,12 @@
     function cellMouseover(sq) {
       let rowName = d3.select(this).attr("rowName");
       let cell = d3.select(this);
-      cell.style("fill", function(d) { return highlightColor; });
+      cell.style("fill", function(d) { return data.uiOpts.highlightColor; });
       d3.selectAll(".row text").classed("active", function(d, i) { return d.fields.title == rowName; });
       d3.selectAll(".column text").classed("active", function(d, i) { return i == sq; });
 
       d3.selectAll(".cell").style("opacity", 0.2);
       cell.style("opacity", 1);
-      console.log(cell);
     }
 
     function cellMouseout() {
@@ -265,6 +264,8 @@
           if(topic == i) return 1;
         }
         return 0.2; });
+
+      console.log(d3.select(this).data());
     }
 
     function textMouseout() {
