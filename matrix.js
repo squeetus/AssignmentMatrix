@@ -1,4 +1,6 @@
-(function() {
+let matrixArgument = "classifications";
+
+var gogogo = function() {
 
   /* Read JSON data from file */
   function readFile(file, next) {
@@ -14,6 +16,7 @@
       'topics': data.topics,
       'languages': data.languages,
       'classifications': data.classifications,
+      // 'columns': [],
       'assignments': []
     };
 
@@ -41,22 +44,17 @@
         //   addUnique(categories.classifications, classification);
         // }
     });
-
     return {'categories': categories, 'assignments': data.assignments};
   }
 
   /* Create a matrix chart */
   function matrix(data) {
     var margin = {top: 150, right: 0, bottom: 10, left: 150},
-        width = 800,
+        width = 20000,
         height = 500;
 
     var rows = d3.scaleBand().rangeRound([0, height]),
-        cols1 = d3.scaleBand().rangeRound([0, width]).padding(0.05),
-        // cols2 = d3.scaleBand().rangeRound([0, width]).padding(0.05),
-        z = d3.scaleLinear().domain([0,1000]).clamp(true);
-        // c = d3.scaleCategory10().domain(d3.range(10));
-
+        cols1 = d3.scaleBand().rangeRound([0, width]).padding(0.05);
 
     /*
      *  S O R T   D A T A
@@ -74,18 +72,15 @@
     // sort topics (alphabetically by name?)
     // data.categories.topics = data.categories.topics.sort(function(a, b) { return d3.ascending(a, b); });
 
-    // set domains of x and y1 scales
+    // set domains of row and col scales
     // rows.domain(d3.range(data.assignments.length));
     rows.domain(data.categories.assignments);
-    console.log(rows.domain());
 
-    cols1.domain(d3.range(data.categories.topics.length));
-    // cols2.domain(d3.range(data.categories.languages.length));
-
-
+    cols1.domain(d3.range(data.categories[matrixArgument].length));
 
     // set up SVG element
-    var svg = d3.select("body").append("svg")
+    d3.select("#banshee").selectAll("*").remove();
+    var svg = d3.select("#banshee")
         .attr("width", width + margin.left + margin.right)
         .attr("height", height + margin.top + margin.bottom)
         .style("margin-left", -margin.left + "px")
@@ -116,7 +111,8 @@
 
     // map topics (etc) to columns
     var topics = svg.selectAll(".column")
-          .data(data.categories.topics)
+          // .data(data.categories.topics)
+          .data(data.categories[matrixArgument])
         .enter().append("g")
           .attr("class", "column")
           .attr("transform", function(d, i) { return "translate(" + cols1(i) + ")rotate(-90)"; });
@@ -138,7 +134,8 @@
     // create each cell
     function row(row) {
         var cell = d3.select(this).selectAll(".cell")
-            .data(row.fields.topics)
+            // .data(row.fields.topics)
+            .data(row.fields[matrixArgument])
           .enter().append("rect")
             .attr("class", "cell")
             .attr("x", function(d, i) { return cols1(d); })
@@ -179,14 +176,14 @@
 
       // highlight all assignments that use this column
       d3.selectAll(".row text").classed("active", function(d, i) {
-        for(let topic of d.fields.topics) {
+        for(let topic of d.fields[matrixArgument]) {
           if(topic == index) return true;
         }
         return false; });
 
       // make extraneous rows opaque
       d3.selectAll(".row text").style("opacity", function(d, i) {
-        for(let topic of d.fields.topics) {
+        for(let topic of d.fields[matrixArgument]) {
           if(topic == index) return 1;
         }
         return 0.2; });
@@ -209,14 +206,14 @@
 
       // highlight all columns that associated with this row
       d3.selectAll(".column text").classed("active", function(d, i) {
-        for(let topic of row.fields.topics) {
+        for(let topic of row.fields[matrixArgument]) {
           if(topic == i) return true;
         }
         return false; });
 
       // make extraneous cols opaque
       d3.selectAll(".column text").style("opacity", function(d, i) {
-        for(let topic of row.fields.topics) {
+        for(let topic of row.fields[matrixArgument]) {
           if(topic == i) return 1;
         }
         return 0.2; });
@@ -276,9 +273,9 @@
       resolve(collectCategories(data));
     });
   }).then(function(stuff){ // then do something with it
-    // console.log(stuff);
     matrix(stuff);
   });
 
 // fin
-})();
+};
+gogogo();
