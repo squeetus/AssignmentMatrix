@@ -15,7 +15,6 @@
       'topics': data.topics,
       'languages': data.languages,
       'classifications': data.classifications,
-      // 'columns': [],
       'assignments': []
     };
 
@@ -26,23 +25,48 @@
       }
     }
 
-    // Iterate through all assignments
+    // Iterate through all assignments and replace indices with strings for each column category
     Object.values(data.assignments).map((assignment) => {
         categories.assignments.push(assignment.fields.title);
-        // note each topic
-        // for (var topic of assignment.fields.topics) {
-        //   console.log(topic, data.topics[topic]);
-        //   // addUnique(categories.topics, data.topics[topic]);
-        // }
-        // // note each language
-        // for (var language of assignment.fields.languages) {
-        //   addUnique(categories.languages, language);
-        // }
-        // // note each classification
-        // for (var classification of assignment.fields.classifications) {
-        //   addUnique(categories.classifications, classification);
-        // }
+
+        // transform each topic from indices to names
+        let topics = assignment.fields.topics;
+        assignment.fields.topics = [];
+        for (let i = 0; i < topics.length; i++) {
+          assignment.fields.topics.push(categories.topics[topics[i]]);
+        }
+
+        // transform each language from indices to names
+        let languages = assignment.fields.languages;
+        assignment.fields.languages = [];
+        for (let i = 0; i < languages.length; i++) {
+          assignment.fields.languages.push(categories.languages[languages[i]]);
+        }
+
+        // transform each classification from indices to names
+        let classifications = assignment.fields.classifications;
+        assignment.fields.classifications = [];
+        for (let i = 0; i < classifications.length; i++) {
+          assignment.fields.classifications.push(categories.classifications[classifications[i]]);
+        }
     });
+
+    /* Now remove null values (and maybe empty columns?) */
+    for(let i = 0; i < categories.topics.length; i++) {
+      if(categories.topics[i] == null) {
+        categories.topics.splice(i, 1);
+      }
+    }
+    for(let i = 0; i < categories.languages.length; i++) {
+      if(categories.languages[i] == null) {
+        categories.languages.splice(i, 1);
+      }
+    }
+    for(let i = 0; i < categories.classifications.length; i++) {
+      if(categories.classifications[i] == null) {
+        categories.classifications.splice(i, 1);
+      }
+    }
 
     data = {'categories': categories, 'assignments': data.assignments};
 
@@ -59,9 +83,8 @@
       data.categories.assignments.push(data.assignments[i].fields.title);
     }
 
-    // sort columns (alphabetically by name?)
-    // NO - because we are indexing in to this list with integers, so sorting will break that association
-    // data.categories[matrixArgument] = data.categories[matrixArgument].sort(function(a, b) { return d3.ascending(a, b); });
+    // sort columns (alphabetically by name)
+    data.categories[matrixArgument] = data.categories[matrixArgument].sort(function(a, b) { return d3.ascending(a, b); });
 
     return data;
   }
@@ -113,9 +136,8 @@
         cols1 = d3.scaleBand().rangeRound([0, width]).padding(0.05);
 
     // set domains of row and col scales
-    // rows.domain(d3.range(data.assignments.length));
     rows.domain(data.rowNames);
-    cols1.domain(d3.range(data.columns.length));
+    cols1.domain(data.columns);
 
     // set up SVG element
     d3.selectAll("svg").remove();
@@ -148,6 +170,9 @@
         .text(function(d, i) { return d.fields.title; })
         .on("mouseover", rowMouseover)
         .on("mouseout", textMouseout)
+        .on("mousedown", function(d, i) {
+          console.log(d);
+        })
         .style("cursor", "default");
 
     // map topics (etc) to columns
@@ -156,10 +181,10 @@
           .data(data.columns)
         .enter().append("g")
           .attr("class", "column")
-          .attr("transform", function(d, i) { return "translate(" + cols1(i) + ")rotate(-90)"; });
+          .attr("transform", function(d, i) { return "translate(" + cols1(d) + ")rotate(-90)"; });
 
     columns.append("line")
-        .attr("x1", -width);
+        .attr("x1", -height);
 
     // topics (etc) as column labels
     columns.append("text")
@@ -173,7 +198,7 @@
         .on("click", colClick)
         .style("cursor", "default");
 
-    // create each cell
+    // create each cell for the given row
     function row(row) {
         var cell = d3.select(this).selectAll(".cell")
             // .data(row.fields.topics)
@@ -188,7 +213,11 @@
             .style("fill-opacity", function(d) { return 1; })
             .style("fill", function(d) { return data.uiOpts.cellColor;})
             .on("mouseover", cellMouseover)
-            .on("mouseout", cellMouseout);
+            .on("mouseout", cellMouseout)
+            .on("mousedown", function(d, i) {
+              let assignmentName = d3.select(this).attr("rowName");
+              console.log(d3.selectAll(".row text").filter(function(d, i) { return d.fields.title == assignmentName; }).data()[0]);
+            });
       }
 
     function cellMouseover(sq) {
@@ -196,7 +225,7 @@
       let cell = d3.select(this);
       cell.style("fill", function(d) { return data.uiOpts.highlightColor; });
       d3.selectAll(".row text").classed("active", function(d, i) { return d.fields.title == rowName; });
-      d3.selectAll(".column text").classed("active", function(d, i) { return i == sq; });
+      d3.selectAll(".column text").classed("active", function(d, i) { return d == sq; });
 
       d3.selectAll(".cell").style("opacity", 0.2);
       cell.style("opacity", 1);
@@ -215,23 +244,23 @@
       // highlight all cells that match the column
       d3.selectAll(".cell")
         .style("fill", function(d, i) {
-          return d == index ? data.uiOpts.highlightColor : data.uiOpts.cellColor;
+          return d == colName ? data.uiOpts.highlightColor : data.uiOpts.cellColor;
         })
         .style("opacity", function(d, i) {
-            return d == index ? 1 : 0.2;
+            return d == colName ? 1 : 0.2;
         });
 
       // highlight all assignments that use this column
       d3.selectAll(".row text").classed("active", function(d, i) {
         for(let topic of d.fields[data.columnTitle]) {
-          if(topic == index) return true;
+          if(topic == colName) return true;
         }
         return false; });
 
       // make extraneous rows opaque
       d3.selectAll(".row text").style("opacity", function(d, i) {
         for(let topic of d.fields[data.columnTitle]) {
-          if(topic == index) return 1;
+          if(topic == colName) return 1;
         }
         return 0.2; });
     }
@@ -254,18 +283,16 @@
       // highlight all columns that associated with this row
       d3.selectAll(".column text").classed("active", function(d, i) {
         for(let topic of row.fields[data.columnTitle]) {
-          if(topic == i) return true;
+          if(topic == d) return true;
         }
         return false; });
 
       // make extraneous cols opaque
       d3.selectAll(".column text").style("opacity", function(d, i) {
         for(let topic of row.fields[data.columnTitle]) {
-          if(topic == i) return 1;
+          if(topic == d) return 1;
         }
         return 0.2; });
-
-      console.log(d3.select(this).data());
     }
 
     function textMouseout() {
@@ -277,19 +304,16 @@
 
     /* Allow reordering of rows based on the column content */
     function colClick(col) {
-      let topicIndex = data.columns.indexOf(col);
-
-      // sort actual assignment data on presence of topic
+      // sort row data on presence of topic
       data.rows = data.rows.sort(function(a, b) {
-        return d3.descending(a.fields[data.columnTitle].indexOf(topicIndex), b.fields[data.columnTitle].indexOf(topicIndex));
+        return d3.descending(a.fields[data.columnTitle].indexOf(col), b.fields[data.columnTitle].indexOf(col));
       });
 
-      // reseed assignment titles based on new order
+      // reseed row names based on new order
       data.rowNames = [];
       for(let i = 0; i < data.rows.length; i++) {
         data.rowNames.push(data.rows[i].fields.title);
       }
-
       // reset domain of row scale
       rows.domain(data.rowNames);
 
