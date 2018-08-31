@@ -39,9 +39,9 @@
         height = 500;
 
     d3.selectAll("#selectionContainer").remove();
-    var svg = d3.select('#topRow')
+    var svg = d3.select('#middleRow')
                 .append('div')
-                .attr('class', 'col-md-6')
+                .attr('class', 'col-md-12')
       .append('div')
         .attr("class", "row")
         .attr("id", "selectionContainer")
@@ -115,7 +115,7 @@
     // topics
     contentRow.append("div").attr("class", "col-md-4")
           .style("font-weight", "bold")
-          .text("Topics");
+          .text("Tags");
     contentRow.append("div").attr("class", "col-md-8").attr("overflow","scroll")
           .text(function(d, i) {
             return d.fields.topics.join(", ");
@@ -151,6 +151,8 @@
       .style("opacity", 0)
       .each(buildAssignmentVis)
       .transition().duration(500).style("opacity", 1);
+
+    if(assignmentComparisonVis) assignmentComparisonVis.update();
   };
 
   window.assignmentSelectionVis = {'setup': setup};

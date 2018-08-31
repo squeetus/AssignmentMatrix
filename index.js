@@ -20,7 +20,7 @@ function readFile(file, next) {
  */
 /* first read JSON data from file */
 new Promise(function(resolve, reject) {
-  readFile("./data.json", function(err, data) {
+  readFile("./tmp.json", function(err, data) {
     if(err) reject(err);
     else resolve(data);
   });
@@ -35,4 +35,9 @@ new Promise(function(resolve, reject) {
 }).then(function(stuff){ // then visualize the matrix
   matrixVis.matrix(stuff);
   assignmentSelectionVis.setup();
+  assignmentComparisonVis.setup();
+
+  stuff.rows.map(function(d) {
+    AssignmentSelection.addAssignment(d);
+  });
 });

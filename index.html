@@ -33,6 +33,20 @@ text.active {
   font-family: sans-serif;
   font-size: 12px;
 }
+
+div#tooltip {
+    position: absolute;
+    text-align: center;
+    /* width: 60px;
+    height: 28px; */
+    padding: 5px;
+    font: 14px sans-serif;
+    background: lightsteelblue;
+    border: 0px;
+    opacity: 0;
+    border-radius: 8px;
+    pointer-events: none;
+}
 </style>
 
 
@@ -44,15 +58,17 @@ text.active {
 <h1>Assignments</h1>
 
 <body>
+  <div id="tooltip"></div>
   <div class="container-fluid">
-    <div class="row" id="topRow">
-    </div>
+    <div class="row" id="topRow"></div>
+    <div class="row" id="middleRow"></div>
+    <div class="row" id="bottomRow"></div>
   </div>
 </body>
 
 <script src="//d3js.org/d3.v4.min.js" charset="utf-8"></script>
 <script src="matrix.js"></script>
 <script src="selection.js"></script>
-
+<script src="comparison.js"></script>
 
 <script src="index.js"></script>

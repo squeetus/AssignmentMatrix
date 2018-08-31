@@ -9,11 +9,13 @@
     topicCount = {};
     languageCount = {};
     datasetCount = {};
+    cCount = {};
     //
     // // Iterate through all assignments
     for(var i in data.assignments) {
     // // // Object.values(data.assignments).map((assignment) => {
       var assignment = data.assignments[i];
+      // AssignmentSelection.addAssignment(assignment);
       data.assignmentNames.push(assignment.fields.title);
 
       // count each topic occurrence
@@ -40,7 +42,7 @@
 
       // count each data set occurrence
       let datasets = assignment.fields['data_sets'];
-      for (let i = 0; i < languages.length; i++) {
+      for (let i = 0; i < datasets.length; i++) {
         let ds = datasets[i];
         if(ds != undefined) {
           if(datasetCount[ds] >= 0) {
@@ -51,11 +53,25 @@
         }
       }
 
+      // count each data set occurrence
+      let classifications = assignment.fields['classifications'];
+      for (let i = 0; i < classifications.length; i++) {
+        let c = classifications[i];
+        if(c != undefined) {
+          if(cCount[c] >= 0) {
+            cCount[c]++;
+          } else {
+            cCount[c] = 1;
+          }
+        }
+      }
+
       data.topics = Object.keys(topicCount).sort(function(a,b){return topicCount[b]-topicCount[a]; });
       data.languages = Object.keys(languageCount).sort(function(a,b){return languageCount[b]-languageCount[a]; });
       data.data_sets = Object.keys(datasetCount).sort(function(a,b){return datasetCount[b]-datasetCount[a]; });
+      data.classifications = Object.keys(cCount).sort(function(a,b){return cCount[b]-cCount[a]; });
     }
-
+    // console.log(AssignmentSelection);
     return data;
   }
 
@@ -73,11 +89,15 @@
           "cellColor": "#42B3D5",
           "highlightColor": "#1A237E"
         },
+        "classifications": {
+          "cellColor": "#42B3D5",
+          "highlightColor": "#1A237E"
+        }
     };
 
     d3.select('#topRow')
                 .append('div')
-                .attr('class', 'col-md-6')
+                .attr('class', 'col-md-12')
       .append("div")
         .attr("id", "matrixVis");
 
@@ -88,13 +108,13 @@
 
     var options = select
       .selectAll('option')
-    	.data(['topics', 'languages', 'data_sets']).enter()
+    	.data(['tags', 'languages', 'data_sets', 'classifications']).enter()
     	.append('option')
     		.text(function (d) { return d; });
 
     function onchange() {
     	let matrixArgument = d3.select('select').property('value');
-
+      if(matrixArgument == "tags") matrixArgument = "topics";
       // redraw matrix with current data selection
       matrix({"rows": data.assignments, "rowNames": data.assignmentNames, "columns": data[matrixArgument], "columnTitle": matrixArgument, "uiOpts": uiOpts[matrixArgument]});
     }
@@ -105,8 +125,10 @@
   /* Create a matrix chart */
   function matrix(data) {
     var margin = {top: 150, right: 10, bottom: 20, left: 150},
-        width = Math.min(12*data.columns.length, 500);
-        height = Math.min(11*data.rows.length, 600);
+        // width = Math.min(12*data.columns.length, 500);
+        // height = Math.min(11*data.rows.length, 600);
+        width = 12*data.columns.length;
+        height = 11*data.rows.length;
 
     var rows = d3.scaleBand().rangeRound([0, height]),
         cols1 = d3.scaleBand().rangeRound([0, width]).padding(0.05);
