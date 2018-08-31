@@ -20,10 +20,24 @@ function readFile(file, next) {
  */
 /* first read JSON data from file */
 new Promise(function(resolve, reject) {
-  readFile("./tmp.json", function(err, data) {
-    if(err) reject(err);
-    else resolve(data);
-  });
+  $.ajax({
+     type: "GET",
+     contentType: "application/json; charset=utf-8",
+     url: '/data',
+     dataType: 'json',
+     async: true,
+     success: function (data) {
+       console.log("AJAX", data);
+        resolve(data);
+     },
+     error: function (result) {
+       console.log(result);
+     }
+   });
+  // readFile("./tmp.json", function(err, data) {
+  //   if(err) reject(err);
+  //   else resolve(data);
+  // });
 }).then(function(data) {  // then collect the categories
   return new Promise(function(resolve, reject) {
     resolve(matrixVis.categories(data));
